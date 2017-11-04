@@ -34,10 +34,17 @@ async function scrap() {
     for (let s of sg.services){
       console.log(s.href);
       await chromy.goto(s.href);
-      await chromy.wait(100);
+      await chromy.wait(500);
       const abstructEN = await chromy.evaluate(() => {
           if(document.querySelector('main')){
-              const pElements = document.querySelector('main').querySelectorAll('p');
+              const pElements = [].filter.call(
+                document.querySelector('main').querySelectorAll('p'),
+                (pn)=>{
+                  if(!pn.querySelector('a')){
+                    return true;
+                  };
+                  return (pn.querySelector('a').textContent != pn.textContent);
+                });
               let pText = pElements[0].textContent.trim();
               if (pElements.length > 1) {
                   pText = pText + "\r\n" + pElements[1].textContent.trim();
