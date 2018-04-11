@@ -39,35 +39,21 @@ async function scrap() {
     //console.log(JSON.stringify(services,null,2));
     for (let sg of services) {
       for (let s of sg.services){
-        console.log(s.href);
-        let res = client.fetchSync(s.href);
-        const abstruct = (($) => {
-          if($('main').length == 1){
-            const pElements = [].filter.call(
-              $('main').find('p'),
-              (pn)=>{
-                if($(pn).find('a').length == 0){
-                  return true;
-                };
-                return ($(pn).find('a').text() != $(pn).text());
-              });
-            let pText = $(pElements[0]).text().trim();
-            if (pElements.length > 1) {
-                pText = pText + "\r\n" + $(pElements[1]).text().trim();
-            }
-            if (pText.length == 0 && ($('div.lb-txt-normal').length > 0)) {
-              // Elemental MediaConvert or Elemental MediaLive
-              pText = $($('div.lb-txt-normal')[0]).text().trim();
-            }
-            return pText;
+        const slaHref = s.href.split('?')[0]+'sla/';
+        console.log(slaHref);
+        let res = client.fetchSync(slaHref);
+        const slaContent = (($) => {
+          if ($('title').text().match(/404/)) {
+            return $('title').text();
+          } else {
+            return slaHref;
           }
-          return $('p').parent().text().trim();
         })(res.$);
-        s.abstruct = abstruct;
-        console.log(abstruct);
+        s.sla = slaContent;
+        console.log(' -> ' + slaContent);
       };
     };
-    fs.writeFileSync("./tmp/services"+lang+".json", JSON.stringify(services));
+    fs.writeFileSync("./tmp/sla_services"+lang+".json", JSON.stringify(services));
   });
 }
 
