@@ -1,5 +1,17 @@
 let client = require('cheerio-httpcli');
 const fs = require("fs");
+if(!fs.existsSync('./tmp')) {
+  fs.mkdir('./tmp',(err)=>{
+    console.log('./tmp folder created.');
+    if(err) {
+      console.log(err);
+      process.exit(2);
+    }
+  });
+} else if(!fs.statSync('./tmp').isDirectory()){
+  console.log('./tmp must be folder');
+  process.exit(1);
+}
 
 let targetUri = 'https://aws.amazon.com/';
 let lang = '';
@@ -40,7 +52,15 @@ async function scrap() {
     for (let sg of services) {
       for (let s of sg.services){
         console.log(s.href);
-        let res = client.fetchSync(s.href);
+        let res = {};
+	try {
+	  res = client.fetchSync(s.href);
+	} catch(e) {
+	  console.log(e);
+	  console.log('skip fetch content.');
+	  s.abstruct = 'N/A';
+	  continue;
+	}
         const abstruct = (($) => {
           if($('main').length == 1){
             const pElements = [].filter.call(
