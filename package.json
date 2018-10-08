@@ -17,6 +17,6 @@
   },
   "homepage": "https://github.com/morimop/aws-services-list#readme",
   "dependencies": {
-    "cheerio-httpcli": "*"
+    "cheerio-httpcli": "^0.7.3"
   }
 }
