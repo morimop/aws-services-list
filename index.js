@@ -5,38 +5,39 @@ let targetUri = 'https://aws.amazon.com/';
 let lang = '';
 
 async function scrap() {
-  if (process.argv[2]) {
-    lang = process.argv[2];
-    console.log('switch-language:'+ lang);
-    if(lang != 'en') {
-      targetUri = targetUri + lang + '/';
-    }
-    client.set('headers', {
-      'Accept-Language': lang
-    });
+  lang = process.argv[2] || 'en';
+  if(lang != 'en') {
+    targetUri = targetUri + lang + '/';
   }
+  client.set('headers', {
+    'Accept-Language': lang
+  });
+  console.log('Accept-Language:'+ lang);
   console.log("goto:" + targetUri);
   client.fetch(targetUri,(err, $, res, body)=>{
-    const contents = $('div.aws-nav-mm-section');
+    const contents = $('a.lb-trigger');
     let services = [];
     [].map.call(contents, (d)=>{
-      const headerTitle = $(d).children('div.aws-nav-mm-section-header').text().trim();
-      const serviceList = [].map.call($(d).find('li'),(l)=>{
-        let srvHref = $(l).children('a').attr('href');
+      const headerTitle = $(d).text().trim();
+      const serviceList = [].map.call($(d).parent().find('div.lb-content-item'),(l)=>{
+        const aNode = $(l).children('a');
+        let srvHref = aNode.attr('href').replace('/'+lang,"").replace(/\?.*$/,"");
         if (srvHref.startsWith('/')) {
           srvHref = targetUri + srvHref.slice(1);
         }
         return {
-          name: $(l).text(),
+          name: aNode.text().trim().replace(aNode.children().text(),""),
           href: srvHref
         };
       });
-      services.push({
+      if(serviceList && serviceList.length > 0) {
+        services.push({
           category: headerTitle,
           services: serviceList
-      });
+        });
+      }
     });
-    //console.log(JSON.stringify(services,null,2));
+    //console.log(JSON.stringify(services,null,2)); return;
     for (let sg of services) {
       for (let s of sg.services){
         console.log(s.href);
