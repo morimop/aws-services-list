@@ -1,98 +1,92 @@
-let client = require('cheerio-httpcli');
-const fs = require("fs");
-if(!fs.existsSync('./tmp')) {
-  fs.mkdir('./tmp',(err)=>{
-    console.log('./tmp folder created.');
-    if(err) {
-      console.log(err);
-      process.exit(2);
+const launchChrome = require("@serverless-chrome/lambda")
+const CDP = require("chrome-remote-interface")
+const puppeteer = require("puppeteer")
+const { scrap } = require("./scrap")
+
+const fs = require("fs")
+if (!fs.existsSync("./tmp")) {
+  fs.mkdir("./tmp", err => {
+    console.log("./tmp folder created.")
+    if (err) {
+      console.log(err)
+      process.exit(2)
     }
-  });
-} else if(!fs.statSync('./tmp').isDirectory()){
-  console.log('./tmp must be folder');
-  process.exit(1);
+  })
+} else if (!fs.statSync("./tmp").isDirectory()) {
+  console.log("./tmp must be folder")
+  process.exit(1)
 }
 
-let targetUri = 'https://aws.amazon.com/';
-let lang = '';
+module.exports.main = async (event, context, callback, chrome) => {
+  console.log("event => " + JSON.stringify(event))
+  let slsChrome = null
 
-async function scrap() {
-  lang = process.argv[2] || 'en';
-  if(lang != 'en') {
-    targetUri = targetUri + lang + '/';
+  try {
+    // 前処理
+    // serverless-chrome を起動し、Puppeteer から Web Socket で接続する
+    console.log("launch chrome...")
+    slsChrome = await launchChrome({
+      flags: [
+        "--headless",
+        "--disable-gpu"
+        // '--no-sandbox',
+        // '--single-process',
+        // '--window-size=1048,743',
+        // '--user-data-dir=/tmp/user-data',
+        // '--hide-scrollbars',
+        // '--enable-logging',
+        // '--log-level=0',
+        // '--v=99',
+        // '--data-path=/tmp/data-path',
+        // '--ignore-certificate-errors',
+        // '--homedir=/tmp',
+        // '--disk-cache-dir=/tmp/cache-dir',
+        // '--disable-setuid-sandbox',
+        // '--remote-debugging-port=9222',
+      ]
+    })
+    const versionInfo = await CDP.Version().catch(error => {
+      console.log(error)
+      callback(null, {
+        statusCode: 500,
+        body: JSON.stringify({
+          error
+        })
+      })
+    })
+
+    console.log(versionInfo)
+    const browser = await puppeteer.connect({
+      browserWSEndpoint: versionInfo.webSocketDebuggerUrl
+    })
+    await scrap(browser, event.lang, fs)
+      .catch(err => {
+        console.error("Error.")
+        console.log(err)
+        callback(err, {
+          statusCode: 500,
+          body: JSON.stringify({
+            versionInfo,
+            chrome
+          })
+        })
+      })
+      .then(() => {
+        console.log("done.")
+        callback(null, {
+          statusCode: 200,
+          body: JSON.stringify({
+            versionInfo,
+            chrome
+          })
+        })
+      })
+  } catch (err) {
+    console.error(err)
+    console.log({ result: "NG" })
+  } finally {
+    if (slsChrome) {
+      await slsChrome.kill()
+    }
   }
-  client.set('headers', {
-    'Accept-Language': lang
-  });
-  console.log('Accept-Language:'+ lang);
-  console.log("goto:" + targetUri);
-  client.fetch(targetUri,(err, $, res, body)=>{
-    const contents = $('a.lb-trigger');
-    let services = [];
-    [].map.call(contents, (d)=>{
-      const headerTitle = $(d).text().trim();
-      const serviceList = [].map.call($(d).parent().find('div.lb-content-item'),(l)=>{
-        const aNode = $(l).children('a');
-        let srvHref = aNode.attr('href').replace('/'+lang,"").replace(/\?.*$/,"");
-        if (srvHref.startsWith('/')) {
-          srvHref = targetUri + srvHref.slice(1);
-        }
-        return {
-          name: aNode.text().trim().replace(aNode.children().text(),""),
-          href: srvHref
-        };
-      });
-      if(serviceList && serviceList.length > 0) {
-        services.push({
-          category: headerTitle,
-          services: serviceList
-        });
-      }
-    });
-    //console.log(JSON.stringify(services,null,2)); return;
-    for (let sg of services) {
-      for (let s of sg.services){
-        console.log(s.href);
-        let res = {};
-	try {
-	  res = client.fetchSync(s.href);
-	} catch(e) {
-	  console.log(e);
-	  console.log('skip fetch content.');
-	  s.abstruct = 'N/A';
-	  continue;
-	}
-        const abstruct = (($) => {
-          if($('main').length == 1){
-            const pElements = [].filter.call(
-              $('main').find('p'),
-              (pn)=>{
-                if($(pn).find('a').length == 0){
-                  return true;
-                };
-                return ($(pn).find('a').text() != $(pn).text());
-              });
-            let pText = $(pElements[0]).text().trim();
-            if (pElements.length > 1) {
-                pText = pText + "\r\n" + $(pElements[1]).text().trim();
-            }
-            if (pText.length == 0 && ($('div.lb-txt-normal').length > 0)) {
-              // Elemental MediaConvert or Elemental MediaLive
-              pText = $($('div.lb-txt-normal')[0]).text().trim();
-            }
-            return pText;
-          }
-          return $('p').parent().text().trim();
-        })(res.$);
-        s.abstruct = abstruct;
-        console.log(abstruct);
-      };
-    };
-    fs.writeFileSync("./tmp/services"+lang+".json", JSON.stringify(services));
-  });
 }
-
-scrap().catch(err => {
-    console.error("Error.");
-    console.log(err);
-});
