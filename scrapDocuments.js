@@ -1,17 +1,17 @@
 const baseUri = "https://docs.aws.amazon.com"
 
-module.exports.scrap = async function(browser, lang, fs) {
+module.exports.scrapDocuments = async function(browser, lang) {
   let targetUri = baseUri + "/index.html"
   if (lang != "en_us") {
     targetUri = targetUri + "#lang/" + lang
   }
-  console.log("Accept-Language:" + lang)
-  console.log("goto:" + targetUri)
   const page = await browser.newPage()
   const acceptLanguage = lang.split("_")[0] || "en"
   await page.setExtraHTTPHeaders({
     "Accept-Language": acceptLanguage
   })
+  console.log("Accept-Language:" + acceptLanguage)
+  console.log("goto:" + targetUri)
   await page.goto(targetUri, { waitUntil: "networkidle0" })
 
   let sourceContent = await page.evaluate(baseUri => {
@@ -46,7 +46,7 @@ module.exports.scrap = async function(browser, lang, fs) {
   //console.log(JSON.stringify(sourceContent, null, 2))
   for (let sc of sourceContent) {
     for (let s of sc.services) {
-      console.log(s.href)
+      console.debug(s.href)
       try {
         await page.goto(s.href + "#lang/" + lang, { waitUntil: "networkidle0" })
         const abstruct = await page.evaluate(() => {
@@ -54,7 +54,7 @@ module.exports.scrap = async function(browser, lang, fs) {
             .textContent
         })
         s.abstruct = abstruct
-        console.log(abstruct)
+        console.debug(abstruct)
       } catch (e) {
         console.log(e)
         console.log("skip fetch content.")
@@ -63,8 +63,5 @@ module.exports.scrap = async function(browser, lang, fs) {
       }
     }
   }
-  fs.writeFileSync(
-    "./tmp/services" + lang + ".json",
-    JSON.stringify(sourceContent)
-  )
+  return sourceContent
 }

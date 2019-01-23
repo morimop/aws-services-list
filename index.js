@@ -1,24 +1,20 @@
 const launchChrome = require("@serverless-chrome/lambda")
 const CDP = require("chrome-remote-interface")
 const puppeteer = require("puppeteer")
-const { scrap } = require("./scrap")
-
-const fs = require("fs")
-if (!fs.existsSync("./tmp")) {
-  fs.mkdir("./tmp", err => {
-    console.log("./tmp folder created.")
-    if (err) {
-      console.log(err)
-      process.exit(2)
-    }
-  })
-} else if (!fs.statSync("./tmp").isDirectory()) {
-  console.log("./tmp must be folder")
-  process.exit(1)
-}
+const { scrapDocuments } = require("./scrapDocuments")
+const { scrapProducts } = require("./scrapProducts")
 
 module.exports.main = async (event, context, callback, chrome) => {
   console.log("event => " + JSON.stringify(event))
+  if (["documents", "products"].indexOf(event.docType) == -1) {
+    console.log("bad request")
+    callback(null, {
+      statusCode: 400,
+      body: JSON.stringify(event)
+    })
+    process.exit(3)
+  }
+  const scrap = event.docType == "documents" ? scrapDocuments : scrapProducts
   let slsChrome = null
 
   try {
@@ -59,7 +55,7 @@ module.exports.main = async (event, context, callback, chrome) => {
     const browser = await puppeteer.connect({
       browserWSEndpoint: versionInfo.webSocketDebuggerUrl
     })
-    await scrap(browser, event.lang, fs)
+    await scrap(browser, event.lang)
       .catch(err => {
         console.error("Error.")
         console.log(err)
@@ -71,10 +67,11 @@ module.exports.main = async (event, context, callback, chrome) => {
           })
         })
       })
-      .then(() => {
+      .then((data) => {
         console.log("done.")
         callback(null, {
           statusCode: 200,
+          content: data,
           body: JSON.stringify({
             versionInfo,
             chrome
