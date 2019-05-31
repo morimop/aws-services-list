@@ -46,7 +46,7 @@ module.exports.scrapProducts = async function(browser, lang) {
   //console.log(JSON.stringify(sourceContent, null, 2))
   for (let sc of sourceContent) {
     for (let s of sc.services) {
-      console.log(s.href)
+      console.log("fetching: " + s.href)
       try {
         await page.goto(s.href, { waitUntil: "networkidle0" })
         const abstruct = await page.evaluate(() => {

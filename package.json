@@ -20,17 +20,17 @@
   "homepage": "https://github.com/morimop/aws-services-list#readme",
   "devDependencies": {
     "babel-eslint": "^10.0.1",
-    "chrome-launcher": "^0.10.5",
-    "eslint": "^5.11.1",
+    "chrome-launcher": "^0.10.7",
+    "eslint": "^5.16.0",
     "eslint-config-prettier": "^3.1.0",
     "eslint-friendly-formatter": "^3.0.0",
-    "eslint-loader": "^2.1.1",
-    "eslint-plugin-prettier": "^3.0.0",
-    "prettier": "^1.14.3",
+    "eslint-loader": "^2.1.2",
+    "eslint-plugin-prettier": "^3.1.0",
+    "prettier": "^1.17.1",
     "serverless-plugin-chrome": "^1.0.0-55"
   },
   "dependencies": {
-    "chrome-remote-interface": "^0.27.0",
-    "puppeteer": "^1.11.0"
+    "chrome-remote-interface": "^0.27.1",
+    "puppeteer": "^1.17.0"
   }
 }

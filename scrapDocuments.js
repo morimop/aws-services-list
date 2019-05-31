@@ -1,9 +1,9 @@
 const baseUri = "https://docs.aws.amazon.com"
 
 module.exports.scrapDocuments = async function(browser, lang) {
-  let targetUri = baseUri + "/index.html"
+  let targetUri = baseUri
   if (lang != "en_us") {
-    targetUri = targetUri + "#lang/" + lang
+    targetUri = targetUri + "/" + lang + "/index.html"
   }
   const page = await browser.newPage()
   const acceptLanguage = lang.split("_")[0] || "en"
@@ -46,11 +46,11 @@ module.exports.scrapDocuments = async function(browser, lang) {
   //console.log(JSON.stringify(sourceContent, null, 2))
   for (let sc of sourceContent) {
     for (let s of sc.services) {
-      console.debug(s.href)
+      console.debug("fetching: " + s.href)
       try {
         await page.goto(s.href + "#lang/" + lang, { waitUntil: "networkidle0" })
         const abstruct = await page.evaluate(() => {
-          return document.querySelector(".awsdocs-banner-container>div>div")
+          return document.querySelector(".awsdocs-banner-abstract")
             .textContent
         })
         s.abstruct = abstruct
