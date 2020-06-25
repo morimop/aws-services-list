@@ -61,6 +61,9 @@ module.exports.scrapProducts = async function(browser, lang) {
                 continue
               }
             }
+            if (contents[i].closest('div.awsm')) {
+              continue
+            }
             let pickupText = contents[i].textContent.replace(/[ +\r\n]+/g, " ")
             if (returnString) {
               return returnString + "\r\n" + pickupText
