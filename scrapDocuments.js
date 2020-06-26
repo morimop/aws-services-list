@@ -15,7 +15,9 @@ module.exports.scrapDocuments = async function(browser, lang) {
   await page.goto(targetUri, { waitUntil: "networkidle0" })
 
   let sourceContent = await page.evaluate(baseUri => {
-    const contents = document.querySelectorAll("div.awsui-cards-card-container")
+    const contents = document.querySelectorAll(
+      "div.awsui-cards-card-container-inner"
+    )
     let services = []
     ;[].map.call(contents, d => {
       const headerTitle = d
@@ -44,14 +46,22 @@ module.exports.scrapDocuments = async function(browser, lang) {
     return services
   }, baseUri)
   //console.log(JSON.stringify(sourceContent, null, 2))
+  var contentTotal = 0
+  for (let sc of sourceContent) {
+    contentTotal += sc.services.length
+  }
+  var contentIndex = 1
+
   for (let sc of sourceContent) {
     for (let s of sc.services) {
-      console.debug("fetching: " + s.href)
+      console.debug(
+        `\u001b[33mfetching (${contentIndex} of ${contentTotal}):\u001b[0m ${s.href}`
+      )
+      contentIndex++
       try {
         await page.goto(s.href + "#lang/" + lang, { waitUntil: "networkidle0" })
         const abstruct = await page.evaluate(() => {
-          return document.querySelector(".awsdocs-banner-abstract")
-            .textContent
+          return document.querySelector(".awsdocs-banner-abstract").textContent
         })
         s.abstruct = abstruct
         console.debug(abstruct)

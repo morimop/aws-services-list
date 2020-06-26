@@ -21,25 +21,29 @@ module.exports.main = async (event, context, callback, chrome) => {
     // 前処理
     // serverless-chrome を起動し、Puppeteer から Web Socket で接続する
     console.log("launch chrome...")
+    var chromeFlags = [
+      "--headless",
+      "--disable-gpu"
+      // '--no-sandbox',
+      // '--single-process',
+      // '--window-size=1048,743',
+      // '--user-data-dir=/tmp/user-data',
+      // '--hide-scrollbars',
+      // '--enable-logging',
+      // '--log-level=0',
+      // '--v=99',
+      // '--data-path=/tmp/data-path',
+      // '--ignore-certificate-errors',
+      // '--homedir=/tmp',
+      // '--disk-cache-dir=/tmp/cache-dir',
+      // '--disable-setuid-sandbox',
+      // '--remote-debugging-port=9222',
+    ]
+    if (process.env.HTTPS_PROXY) {
+      chromeFlags.push("--proxy-server=" + process.env.HTTPS_PROXY)
+    }
     slsChrome = await launchChrome({
-      flags: [
-        "--headless",
-        "--disable-gpu"
-        // '--no-sandbox',
-        // '--single-process',
-        // '--window-size=1048,743',
-        // '--user-data-dir=/tmp/user-data',
-        // '--hide-scrollbars',
-        // '--enable-logging',
-        // '--log-level=0',
-        // '--v=99',
-        // '--data-path=/tmp/data-path',
-        // '--ignore-certificate-errors',
-        // '--homedir=/tmp',
-        // '--disk-cache-dir=/tmp/cache-dir',
-        // '--disable-setuid-sandbox',
-        // '--remote-debugging-port=9222',
-      ]
+      flags: chromeFlags
     })
     const versionInfo = await CDP.Version().catch(error => {
       console.log(error)
@@ -67,7 +71,7 @@ module.exports.main = async (event, context, callback, chrome) => {
           })
         })
       })
-      .then((data) => {
+      .then(data => {
         console.log("done.")
         callback(null, {
           statusCode: 200,

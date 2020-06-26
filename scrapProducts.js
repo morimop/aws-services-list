@@ -44,9 +44,18 @@ module.exports.scrapProducts = async function(browser, lang) {
     return services
   }, baseUri)
   //console.log(JSON.stringify(sourceContent, null, 2))
+  var contentTotal = 0
+  for (let sc of sourceContent) {
+    contentTotal += sc.services.length
+  }
+  var contentIndex = 1
+
   for (let sc of sourceContent) {
     for (let s of sc.services) {
-      console.log("fetching: " + s.href)
+      console.debug(
+        `\u001b[33mfetching (${contentIndex} of ${contentTotal}):\u001b[0m ${s.href}`
+      )
+      contentIndex++
       try {
         await page.goto(s.href, { waitUntil: "networkidle0" })
         const abstruct = await page.evaluate(() => {
@@ -54,14 +63,14 @@ module.exports.scrapProducts = async function(browser, lang) {
             .querySelector("#main,main")
             .querySelectorAll("p:not(.vjs-control-text),.lb-txt-normal")
           let returnString = null
-          for (i = 0; i < contents.length; i++) {
+          for (var i = 0; i < contents.length; i++) {
             const innerA = contents[i].querySelector("a")
             if (innerA) {
               if (contents[i].textContent == innerA.textContent) {
                 continue
               }
             }
-            if (contents[i].closest('div.awsm')) {
+            if (contents[i].closest("div.awsm")) {
               continue
             }
             let pickupText = contents[i].textContent.replace(/[ +\r\n]+/g, " ")
